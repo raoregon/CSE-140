@@ -1,6 +1,6 @@
 from pacai.util import reflection
 from pacai.agents.capture.capture import CaptureAgent
-from pacai.core import distanceCalculator
+from pacai.core.distanceCalculator import Distancer
 import math
 import random
 
@@ -51,7 +51,7 @@ class ReflexAgent(CaptureAgent):
         # Time to spend each turn on computing maze distances
         self.timeForComputing = timeForComputing
 
-    def getAction(self, gameState):
+    def chooseAction(self, gameState):
         """
         You do not need to change this method, but you're welcome to.
 
@@ -61,7 +61,6 @@ class ReflexAgent(CaptureAgent):
         `pacai.core.gamestate.AbstractGameState` and returns some value from
         `pacai.core.directions.Directions`.
         """
-        getCapsules
         # Collect legal moves.
         legalMoves = gameState.getLegalActions(self.index)
 
@@ -70,19 +69,9 @@ class ReflexAgent(CaptureAgent):
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices)  # Pick randomly among the best.
-
+        print(bestScore)
         return legalMoves[chosenIndex]
 
-    def getOpponents(self, gameState):
-        """
-        Returns agent indices of your opponents. This is the list of the numbers
-        of the agents (e.g., red might be 1, 3, 5)
-        """
-
-        if self.red:
-            return gameState.getBlueTeamIndices()
-        else:
-            return gameState.getRedTeamIndices()
 
     def evaluationFunction(self, currentGameState, action):
         """
@@ -97,8 +86,11 @@ class ReflexAgent(CaptureAgent):
         successorGameState = currentGameState.generateSuccessor(self.index, action)
 
         # Useful information you can extract.
+        currentPosition = currentGameState.getAgentState(self.index).getPosition()
         newPosition = successorGameState.getAgentState(self.index).getPosition()
-        oldFood = currentGameState.getFood()
+        foodPosition = currentGameState.getFood()
+
+        distancer = Distancer(currentGameState.getInitialLayout())
 
         # newGhostStates = currentGameState.getOpponents()
         # newScaredTimes = [ghostState.getScaredTimer() for ghostState in newGhostStates]
@@ -110,11 +102,6 @@ class ReflexAgent(CaptureAgent):
         oldFoodDistance = []
         newFoodDistance = []
         oldPosition = currentGameState.getAgentState(self.index).getPosition()
-
-        # check distance helper function
-        def getDistance(x1, y1, x2, y2):
-            distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-            return distance
 
         # if ghosts are mean, be wary of them
         """
@@ -143,12 +130,13 @@ class ReflexAgent(CaptureAgent):
                 if min(ghostDistance) < 3:
                     return score + 5
         """
-        # prioritize moves towards fruit
-        for foods in oldFood.asList():
-            oldFoodDistance.append(getDistance(oldPosition[0], oldPosition[1], foods[0], foods[1]))
 
-        for foods in oldFood.asList():
-            newFoodDistance.append(getDistance(newPosition[0], newPosition[1], foods[0], foods[1]))
+        # prioritize moves towards fruit
+        for foods in foodPosition.asList():
+            oldFoodDistance.append(distancer.getDistance(currentPosition, foods))
+
+        for foods in foodPosition.asList():
+            newFoodDistance.append(distancer.getDistance(newPosition, foods))
 
         if (len(oldFoodDistance) != 0) and (len(newFoodDistance) != 0):
             if min(newFoodDistance) < min(oldFoodDistance):
