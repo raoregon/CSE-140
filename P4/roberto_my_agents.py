@@ -123,7 +123,6 @@ class UngaBungaAgent(CaptureAgent):
         ourFoodMoreOrEqual = ourFoodCount >= theirFoodCount
 
         # Split map into 4 halves
-
         # Change features if on Offense:
         if features.get("onDefense") == 0:
             #print("on offense")
