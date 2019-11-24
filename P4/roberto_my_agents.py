@@ -39,91 +39,20 @@ class UngaBungaAgent(CaptureAgent):
         super().__init__(index)
 
     def chooseAction(self, gameState):
-        """
-        You do not need to change this method, but you're welcome to.
-
-        `ReflexAgent.getAction` chooses among the best options according to the evaluation function.
-
-        Just like in the previous project, this method takes a
-        `pacai.core.gamestate.AbstractGameState` and returns some value from
-        `pacai.core.directions.Directions`.
-        """
+        # takes a list of legal actions, and chooses the action that maximizes score
+        # NEED TO CHANGE SO IF NEXT MOVE IS 'onDefense' WILL STOP THE AGENT FROM MOVING
+        # OUTSIDE OF ITS GUARD ZONE
         # Collect legal moves.
         legalMoves = gameState.getLegalActions(self.index)
 
         # Choose one of the best actions.
         scores = [self.evaluate(gameState, action) for action in legalMoves]
+
         bestScore = max(scores)
         bestIndices = [index for index in range(len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices)  # Pick randomly among the best.
         # print(bestScore)
         return legalMoves[chosenIndex]
-    """
-    def evaluationFunction(self, currentGameState, action):
-
-        successorGameState = currentGameState.generateSuccessor(self.index, action)
-
-        # Positions: current, successor, food
-        currentPosition = currentGameState.getAgentState(self.index).getPosition()
-        newPosition = successorGameState.getAgentState(self.index).getPosition()
-        foodPosition = self.getFood(currentGameState)
-
-        enemyIndex = self.getOpponents(currentGameState)
-        newEnemyIndex = self.getOpponents(successorGameState)
-
-        enemyStates = []
-        enemyPositions = []
-        newEnemyStates = []
-        newEnemyPositions = []
-
-        for opponentIndex in enemyIndex:
-            enemyState = currentGameState.getAgentState(opponentIndex)
-            enemyStates.append(enemyState)
-
-        for opponentIndex in newEnemyIndex:
-            newEnemyState = successorGameState.getAgentState(opponentIndex)
-            newEnemyStates.append(newEnemyState)
-
-        for states in enemyStates:
-            enemyPositions.append(states.getPosition())
-
-        for states in newEnemyStates:
-            newEnemyPositions.append(states.getPosition())
-
-        score = successorGameState.getScore()
-        enemyDistance = []
-        oldFoodDistance = []
-        newFoodDistance = []
-
-        # if ghosts are mean, be wary of them
-
-        for enemies in newEnemyStates:
-            enemyDistance.append(self.getMazeDistance(currentPosition, enemies.getPosition()))
-
-        if len(enemyDistance) != 0:
-            if min(enemyDistance) <= 1.1:
-                return -math.inf
-            if min(enemyDistance) <= 1.5:
-                return score - 15
-            if min(enemyDistance) < 2:
-                return score - 10
-            if min(enemyDistance) < 3:
-                return score - 5
-
-
-        # prioritize moves towards fruit
-        for foods in foodPosition.asList():
-            oldFoodDistance.append(self.getMazeDistance(currentPosition, foods))
-
-        for foods in foodPosition.asList():
-            newFoodDistance.append(self.getMazeDistance(newPosition, foods))
-
-        if (len(oldFoodDistance) != 0) and (len(newFoodDistance) != 0):
-            if min(newFoodDistance) < min(oldFoodDistance):
-                return score + 5
-
-        return score
-    """
 
     def evaluate(self, gameState, action):
         """
@@ -136,6 +65,8 @@ class UngaBungaAgent(CaptureAgent):
         return features * weights
 
     def getFeatures(self, gameState, action):
+        # Some helper variables that we may use during execution
+
         features = counter.Counter()
         successor = gameState.generateSuccessor(self.index, action)
         features['successorScore'] = self.getScore(successor)
@@ -144,9 +75,9 @@ class UngaBungaAgent(CaptureAgent):
 
         # Computes whether we're on defense (1) or offense (0).
         # check how many agents are on our team
-        # split up team to Attackers and Defenders depending on size
+        # split up team to Attackers(aSide) and Defenders(bSide) depending on size
         # half attack, half defense
-        # default is offense
+        # default is offense so if only 1 agent, he's on offense
         features['onDefense'] = 0
 
         currentTeam = self.getTeam(gameState)
@@ -154,6 +85,8 @@ class UngaBungaAgent(CaptureAgent):
         aSide = []
         bSide = []
 
+        # this loop sets our agents to either a or b side depending on
+        # the number of team members and this agent's index
         count = 1
         while count <= teamLength:
             if count % 2:
@@ -173,8 +106,13 @@ class UngaBungaAgent(CaptureAgent):
         ourFoodCount = 0
         theirFoodCount = 0
 
+        # calculate size of map here as well
+        layoutY = -2
         for foods in ourFoodPosition:
+            layoutY += 1
+            layoutX = -2
             for food in foods:
+                layoutX += 1
                 if str(food) == "True":
                     ourFoodCount += 1
         for foods in theirFoodPosition:
@@ -184,7 +122,9 @@ class UngaBungaAgent(CaptureAgent):
 
         ourFoodMoreOrEqual = ourFoodCount >= theirFoodCount
 
-        # if on Offense:
+        # Split map into 4 halves
+
+        # Change features if on Offense:
         if features.get("onDefense") == 0:
             #print("on offense")
             #print(self.index)
@@ -199,7 +139,7 @@ class UngaBungaAgent(CaptureAgent):
 
             return features
 
-        # if on defense
+        # Change features if on Defense
         elif features.get('onDefense') == 1:
             #print("on defense")
             #print(self.index)
