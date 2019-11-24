@@ -146,17 +146,26 @@ class UngaBungaAgent(CaptureAgent):
         # check how many agents are on our team
         # split up team to Attackers and Defenders depending on size
         # half attack, half defense
+        # default is offense
         features['onDefense'] = 0
 
         currentTeam = self.getTeam(gameState)
         teamLength = len(currentTeam)
+        aSide = []
+        bSide = []
 
-        if teamLength % 2 == 0:
-            count = 1
-            while count <= teamLength:
-                if count % 2 == 0:
-                    features['onDefense'] = 1
-                count += 1
+        count = 1
+        while count <= teamLength:
+            if count % 2:
+                bSide.append(currentTeam[count-1])
+            else:
+                aSide.append(currentTeam[count-1])
+            count += 1
+
+        if self.index in aSide:
+            features['onDefense'] = 0
+        else:
+            features['onDefense'] = 1
 
         # % of our food vs their food
         ourFoodPosition = self.getFoodYouAreDefending(gameState)
@@ -176,8 +185,9 @@ class UngaBungaAgent(CaptureAgent):
         ourFoodMoreOrEqual = ourFoodCount >= theirFoodCount
 
         # if on Offense:
-        if features['onDefense'] == 0:
-            print("on offense")
+        if features.get("onDefense") == 0:
+            #print("on offense")
+            #print(self.index)
             # Compute distance to the nearest food.
             foodList = self.getFood(successor).asList()
 
@@ -190,7 +200,9 @@ class UngaBungaAgent(CaptureAgent):
             return features
 
         # if on defense
-        elif features['onDefense'] == 1:
+        elif features.get('onDefense') == 1:
+            #print("on defense")
+            #print(self.index)
             # Computes distance to invaders we can see.
             enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
             invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
