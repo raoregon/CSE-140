@@ -25,6 +25,7 @@ def createTeam(firstIndex, secondIndex, isRed,
     ]
 
 
+
 class UngaBungaAgent(CaptureAgent):
     """
     A reflex agent chooses an action at each choice point by examining
@@ -58,7 +59,7 @@ class UngaBungaAgent(CaptureAgent):
                 #print("ondefense")
                 actionFeatures = 1
             scores[action] = self.evaluate(gameState, action)
-        # print(scores)
+        #print(scores)
         if actionFeatures == 0 or actionFeatures == 1:
             currentMax = -math.inf
             for key in scores:
@@ -91,7 +92,7 @@ class UngaBungaAgent(CaptureAgent):
         #print(weights)
         #print(features)
 
-        #print (features * weights)
+        #print("features*weights: " + str(features * weights))
         return features * weights
 
     def getFeatures(self, gameState, action):
@@ -137,12 +138,12 @@ class UngaBungaAgent(CaptureAgent):
         theirFoodCount = 0
 
         # calculate size of map here as well
-        layoutY = -2
+        layoutX = -2
         for foods in ourFoodPosition:
-            layoutY += 1
-            layoutX = -2
+            layoutX += 1
+            layoutY = -2
             for food in foods:
-                layoutX += 1
+                layoutY += 1
                 if str(food) == "True":
                     ourFoodCount += 1
         for foods in theirFoodPosition:
@@ -159,8 +160,8 @@ class UngaBungaAgent(CaptureAgent):
 
         # Change features if on Offense:
         if features.get("onDefense") == 0:
-            # print("on offense")
-            # print(self.index)
+            #print("on offense")
+            #print(self.index)
             # Compute distance to the nearest food.
             foodList = self.getFood(successor).asList()
 
@@ -170,23 +171,68 @@ class UngaBungaAgent(CaptureAgent):
                 minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
                 features['distanceToFood'] = minDistance
 
+            if self.red:
+                if myPos[0] >= layoutX / 2:
+                    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+                    invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
+
+                    features['numInvaders'] = len(invaders)
+
+                    if len(invaders) > 0:
+                        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+                        features['invaderDistance'] = min(dists)
+            else:
+                if myPos[0] <= layoutX / 2:
+                    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+                    invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
+
+                    features['numInvaders'] = len(invaders)
+
+                    if len(invaders) > 0:
+                        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+                        features['invaderDistance'] = min(dists)
+
             return features
 
         # Change features if on Defense
         elif features.get('onDefense') == 1:
-            # print("on defense")
-            # print(self.index)
+            #print("on defense")
+            #print(self.index)
             # Computes distance to invaders we can see.
             enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
             invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
-            features['numInvaders'] = len(invaders)
+            potentialInvaders = [a for a in enemies if a.isGhost() and a.getPosition() is not None]
 
-            if myPos[0] > layoutX/2:
-                features['inTeamSide'] = 1
+
+
+            features['numInvaders'] = len(invaders)
+            features['numPotentialInvaders'] = len(potentialInvaders)
+
+            #print("myPosX: " + str(myPos[0]))
+            #print("myPosY: " + str(myPos[1]))
+            #print(layoutX/2)
+
+            if self.red:
+                if myPos[0] <= layoutX / 2 - 1:
+                    features['inTeamSide'] = 1
+                    # features['inEnemySide'] = 0
+            else:
+                if myPos[0] >= layoutX / 2 + 1:
+                    features['inTeamSide'] = 1
+                    # features['inEnemySide'] = 0
+
+
+            if myState.isScaredGhost():
+                features['witnessMEEEE'] = 1
 
             if len(invaders) > 0:
                 dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
                 features['invaderDistance'] = min(dists)
+
+            if len(potentialInvaders) > 0:
+                dists = [self.getMazeDistance(myPos, a.getPosition()) for a in potentialInvaders]
+                features['potentialInvaderDistance'] = min(dists)
+
 
             if action == Directions.STOP:
                 features['stop'] = 1
@@ -195,6 +241,24 @@ class UngaBungaAgent(CaptureAgent):
             if action == rev:
                 features['reverse'] = 1
 
+            """
+            if myPos[0] < (layoutX/2+1):
+                foodList = self.getFood(successor).asList()
+                # This should always be True, but better safe than sorry.
+                if len(foodList) > 0:
+                    myPos = successor.getAgentState(self.index).getPosition()
+                    minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
+                    features['distanceToFood'] = minDistance
+                    
+                    features['numInvaders'] = 0
+                    features['onDefense'] = 0
+                    features['invaderDistance'] = 0
+                    features['potentialInvaderDistance'] = 0
+                    features['stop'] = 1
+                    features['reverse'] = 0
+                    features['witnessMEEEE'] = 0
+                    features['inTeamSide'] = 0
+            """
             return features
 
     def getWeights(self, gameState, action):
@@ -206,14 +270,19 @@ class UngaBungaAgent(CaptureAgent):
         if features['onDefense'] == 0:
             return {
                 'successorScore': 100,
-                'distanceToFood': -1
+                'distanceToFood': -1,
+                'numInvaders': -1500,
+                'invaderDistance': -10
                 }
         else:
             return {
-                'numInvaders': -1000,
+                'numInvaders': -1500,
                 'onDefense': 100,
-                'invaderDistance': -100,
+                'invaderDistance': -500,
+                'potentialInvaderDistance': -5,
                 'stop': -100,
-                'reverse': -2,
-                'inTeamSide': -1000
+                'reverse': -10,
+                'inTeamSide': 150,
+                'witnessMEEEE': -1250,
+                #'distanceToFood': -2000
                 }
