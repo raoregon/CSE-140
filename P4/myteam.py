@@ -126,7 +126,7 @@ class UngaBungaAgent(CaptureAgent):
             count += 1
 
         if self.index in aSide:
-            features['onDefense'] = 1
+            features['onDefense'] = 0
         else:
             features['onDefense'] = 1
 
