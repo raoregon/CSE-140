@@ -172,16 +172,6 @@ class UngaBungaAgent(CaptureAgent):
                 features['distanceToFood'] = minDistance
 
             if self.red:
-                if myPos[0] >= layoutX / 2:
-                    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-                    invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
-
-                    features['numInvaders'] = len(invaders)
-
-                    if len(invaders) > 0:
-                        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
-                        features['invaderDistance'] = min(dists)
-            else:
                 if myPos[0] <= layoutX / 2:
                     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
                     invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
@@ -191,6 +181,18 @@ class UngaBungaAgent(CaptureAgent):
                     if len(invaders) > 0:
                         dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
                         features['invaderDistance'] = min(dists)
+            else:
+                if myPos[0] >= layoutX / 2:
+                    enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+                    invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
+
+                    features['numInvaders'] = len(invaders)
+
+                    if len(invaders) > 0:
+                        dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
+                        features['invaderDistance'] = min(dists)
+                        #features['distanceToFood'] = 0
+
 
             return features
 
@@ -213,11 +215,11 @@ class UngaBungaAgent(CaptureAgent):
             #print(layoutX/2)
 
             if self.red:
-                if myPos[0] <= layoutX / 2 - 1:
+                if myPos[0] <= (layoutX / 2) - 1:
                     features['inTeamSide'] = 1
                     # features['inEnemySide'] = 0
             else:
-                if myPos[0] >= layoutX / 2 + 1:
+                if myPos[0] >= (layoutX / 2) + 1:
                     features['inTeamSide'] = 1
                     # features['inEnemySide'] = 0
 
@@ -272,7 +274,7 @@ class UngaBungaAgent(CaptureAgent):
                 'successorScore': 100,
                 'distanceToFood': -1,
                 'numInvaders': -1500,
-                'invaderDistance': -10
+                'invaderDistance': -500
                 }
         else:
             return {
