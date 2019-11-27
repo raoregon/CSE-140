@@ -1,4 +1,4 @@
-from pacai.util import reflection
+# from pacai.util import reflection
 from pacai.agents.capture.capture import CaptureAgent
 from pacai.util import counter
 from pacai.core.directions import Directions
@@ -24,7 +24,6 @@ def createTeam(firstIndex, secondIndex, isRed,
         UngaBungaAgent(firstIndex),
         UngaBungaAgent(secondIndex),
     ]
-
 
 
 class UngaBungaAgent(CaptureAgent):
@@ -152,9 +151,9 @@ class UngaBungaAgent(CaptureAgent):
         count = 1
         while count <= len(currentTeam):
             if count % 2 == 0:
-                bSide.append(currentTeam[count-1])
+                bSide.append(currentTeam[count - 1])
             else:
-                aSide.append(currentTeam[count-1])
+                aSide.append(currentTeam[count - 1])
             count += 1
 
         if self.index in aSide:
@@ -329,20 +328,9 @@ class UngaBungaAgent(CaptureAgent):
         # going into enemy territory
         features = self.getFeatures(gameState, action)
         if features['onDefense'] == 0:
-            return {
-                'successorScore': 100,
-                'distanceToFood': -1,
-                'numInvaders': -1500,
-                'invaderDistance': -500
-                }
+            return {'successorScore': 100, 'distanceToFood': -1, 'numInvaders': -1500,
+                    'invaderDistance': -500}
         else:
-            return {
-                'numInvaders': -1500,
-                'onDefense': 100,
-                'invaderDistance': -500,
-                'potentialInvaderDistance': -5,
-                'stop': -100,
-                'reverse': -10,
-                'inTeamSide': 150,
-                'witnessMEEEE': -1250,
-                }
+            return {'numInvaders': -1500, 'onDefense': 100, 'invaderDistance': -500,
+                    'potentialInvaderDistance': -5, 'stop': -100, 'reverse': -10,
+                    'inTeamSide': 150, 'witnessMEEEE': -1250}
