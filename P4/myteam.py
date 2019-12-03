@@ -31,6 +31,9 @@ class UngaBungaAgent(CaptureAgent):
     # initializes Our Ungabunga agent, nothing to fancy, don't have to make any changes to init
     def __init__(self, index, **kwargs):
         super().__init__(index)
+        self.enemy_one_counter = 0
+        self.enemy_two_counter = 0
+        self.scared_timer = 0
 
     # takes a list of legal actions, and chooses the action that maximizes score based on the
     # current features the agent has. Scores are calculated by multiplying features by weights
@@ -222,14 +225,53 @@ class UngaBungaAgent(CaptureAgent):
             # Compute distance to the nearest food.
             foodList = self.getFood(successor).asList()
 
+
+            # Computing if the enemies are ghosts and setting a timer for them
+            # enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+
+            # scaredGhosts = []
+            # if enemies[0].isScaredGhost():
+            #     self.enemy_one_counter += 1
+            #     scaredGhosts.append(enemies[0])
+            # else:
+            #     self.enemy_one_counter = 0
+
+            # if enemies[1].isScaredGhost():
+            #     self.enemy_two_counter += 1
+            #     scaredGhosts.append(enemies[1])
+            # else:
+            #     self.enemy_two_counter = 0
+
+            
+            
+            
+
             if len(foodList) > 0:
                 myPos = successor.getAgentState(self.index).getPosition()
                 minDistance = min([self.getMazeDistance(myPos, food) for food in foodList])
                 features['distanceToFood'] = minDistance
+            
+            # Compute distance to nearest Capsule/ Big fruit
+            capsules = self.getCapsules(successor)
+
+            if len(capsules) > 0:
+                myPos = successor.getAgentState(self.index).getPosition()
+                minDistance = min([self.getMazeDistance(myPos, big_fruit) for big_fruit in capsules])
+                features['distanceToCapsule'] = minDistance
+            
+            
 
             # Check if agent is still on our side of the map AND if we currently have an
             # invader, if yes, then head straight for the invader. Divided into two "if"
             # statements to check if we're blue or red
+
+            """
+            maybe we should move all the enemies and scared ghost calculations outside the loop
+            since they are identical on both red and blue
+
+            oh shit, one thing I realized was an issue was that we may have a miscount out the scared
+            ghosts, since they may be on our side and the counter might mess up
+            """
             if self.red:
                 if myPos[0] <= layoutX / 2:
                     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
@@ -237,9 +279,24 @@ class UngaBungaAgent(CaptureAgent):
 
                     features['numInvaders'] = len(invaders)
 
+                    scaredGhosts = []
+
+                    #calculating scared ghosts
+                    for enemy in enemies:
+                        if enemy.isScaredGhost():
+                            scaredGhosts.append(enemy)
+                    if len(scaredGhosts) > 0:
+                        self.scared_timer += 1
+                    else:
+                        self.scared_timer = 0
+
                     if len(invaders) > 0:
                         dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
                         features['invaderDistance'] = min(dists)
+
+                    elif self.scared_timer > 25:
+                        prey_dist =  dists = [self.getMazeDistance(myPos, a.getPosition()) for a in scaredGhosts]
+                        features['nomGhostDistance'] = min(prey_dist)
             else:
                 if myPos[0] >= layoutX / 2:
                     enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
@@ -247,9 +304,25 @@ class UngaBungaAgent(CaptureAgent):
 
                     features['numInvaders'] = len(invaders)
 
+
+                    #calculating scared ghosts
+                    scaredGhosts = []
+                    for enemy in enemies:
+                        if enemy.isScaredGhost():
+                            scaredGhosts.append(enemy)
+                    if len(scaredGhosts) > 0:
+                        self.scared_timer += 1
+                    else:
+                        self.scared_timer = 0
+
+
                     if len(invaders) > 0:
                         dists = [self.getMazeDistance(myPos, a.getPosition()) for a in invaders]
                         features['invaderDistance'] = min(dists)
+
+                    elif self.scared_timer > 25:
+                        prey_dist =  dists = [self.getMazeDistance(myPos, a.getPosition()) for a in scaredGhosts]
+                        features['nomGhostDistance'] = min(prey_dist)
 
             return features
 
@@ -306,9 +379,42 @@ class UngaBungaAgent(CaptureAgent):
             # Honestly, I don't know what this does, but it was in the capture agent code
             rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
             if action == rev:
-                features['reverse'] = 1
+                features['reverse'] = 1 
 
             return features
+
+
+    def bait_and_switch(self, gameState, successor, myPos, features):
+        """
+        A bait and switch function where if an enemy ghost has been standing on thier side and has
+        stayed alive for a certain amunt of side then we can safely assume that it is a defender,
+        this is only invoked if there certain conditions are satisfied
+        1) there is an enemy defender
+        2) the other pacman is a safe distance away such that our defender can allocate resources to
+            distract
+        3) our other pacman is near enough to the border to make sense
+
+        We will make sure that our defender never strays too far away and always returns
+        """
+        enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
+        invaders = [a for a in enemies if a.isPacman() and a.getPosition() is not None]
+        potentialInvaders = [a for a in enemies if a.isGhost() and a.getPosition() is not None]
+
+        # need to chack if both of our team is close enough to the wall and are still ghosts
+        if len(invaders) == 0:
+            dist = [self.getMazeDistance(myPos, a.getPosition()) for a in potentialInvaders]
+            if max(dist) > 25 and min(dist) < 7 :
+                if features['onDefense'] == 0:
+                    print(" ")
+                    #get agent to distract, not sure how to implement
+
+                else:
+                    print(" ")
+                    #get agent to wait until the next the defender has passed through
+
+
+
+
 
     def getWeights(self, gameState, action):
         """
@@ -319,6 +425,7 @@ class UngaBungaAgent(CaptureAgent):
         # the following features are distances that we minimize so a HIGHER NEGATIVE
         # VALUE CREATES A HIGHER PRIORITY:
         # distanceToFood
+        # distanceToCapsule
         # numInvaders
         # invaderDistance
         # witnessMEEEE
@@ -329,7 +436,7 @@ class UngaBungaAgent(CaptureAgent):
         features = self.getFeatures(gameState, action)
         if features['onDefense'] == 0:
             return {'successorScore': 100, 'distanceToFood': -1, 'numInvaders': -1500,
-                    'invaderDistance': -500}
+                    'invaderDistance': -500, 'distanceToCapsule':-150, 'nomGhostDistance':-1000}
         else:
             return {'numInvaders': -1500, 'onDefense': 100, 'invaderDistance': -500,
                     'potentialInvaderDistance': -5, 'stop': -100, 'reverse': -10,
