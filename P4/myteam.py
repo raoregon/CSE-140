@@ -34,6 +34,7 @@ class UngaBungaAgent(CaptureAgent):
         self.enemy_one_counter = 0
         self.enemy_two_counter = 0
         self.scared_timer = 0
+        self.max_HP = 20
 
     # takes a list of legal actions, and chooses the action that maximizes score based on the
     # current features the agent has. Scores are calculated by multiplying features by weights
@@ -224,26 +225,6 @@ class UngaBungaAgent(CaptureAgent):
 
             # Compute distance to the nearest food.
             foodList = self.getFood(successor).asList()
-
-
-            # Computing if the enemies are ghosts and setting a timer for them
-            # enemies = [successor.getAgentState(i) for i in self.getOpponents(successor)]
-
-            # scaredGhosts = []
-            # if enemies[0].isScaredGhost():
-            #     self.enemy_one_counter += 1
-            #     scaredGhosts.append(enemies[0])
-            # else:
-            #     self.enemy_one_counter = 0
-
-            # if enemies[1].isScaredGhost():
-            #     self.enemy_two_counter += 1
-            #     scaredGhosts.append(enemies[1])
-            # else:
-            #     self.enemy_two_counter = 0
-
-            
-            
             
 
             if len(foodList) > 0:
@@ -285,6 +266,8 @@ class UngaBungaAgent(CaptureAgent):
                     for enemy in enemies:
                         if enemy.isScaredGhost():
                             scaredGhosts.append(enemy)
+
+                    
                     if len(scaredGhosts) > 0:
                         self.scared_timer += 1
                     else:
@@ -310,6 +293,7 @@ class UngaBungaAgent(CaptureAgent):
                     for enemy in enemies:
                         if enemy.isScaredGhost():
                             scaredGhosts.append(enemy)
+
                     if len(scaredGhosts) > 0:
                         self.scared_timer += 1
                     else:
@@ -380,6 +364,12 @@ class UngaBungaAgent(CaptureAgent):
             rev = Directions.REVERSE[gameState.getAgentState(self.index).getDirection()]
             if action == rev:
                 features['reverse'] = 1 
+
+            # If other side has now more than 30% of our pelets, then we just go balls to the 
+            # wall and make this guy an attacker
+            current_HP = self.getFoodYouAreDefending(successor).asList()
+            if len(current_HP) < 14:
+                features['onDefense'] = 0
 
             return features
 
