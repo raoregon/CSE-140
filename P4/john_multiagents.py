@@ -454,7 +454,7 @@ class UngaBungaAgent(CaptureAgent):
         # going into enemy territory
         features = self.getFeatures(gameState, action)
         if features['onDefense'] == 0:
-            return {'successorScore': 100, 'distanceToFood': -100, 'numInvaders': -1500,
+            return {'successorScore': 100, 'distanceToFood': -10, 'numInvaders': -1500,
                     'invaderDistance': -500, 'distanceToCapsule':-150, 'nomGhostDistance':-100,
                     'potentialInvaderDistance': 300}
         else:
